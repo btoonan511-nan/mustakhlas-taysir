@@ -27,8 +27,9 @@ async function resetTables() {
 }
 
 async function seedUsers() {
-  const admin = process.env.ADMIN_PASSWORD ?? "admin1234";
-  const user = process.env.USER_PASSWORD ?? "islam1234";
+  const admin = process.env.ADMIN_PASSWORD;
+  const user = process.env.USER_PASSWORD;
+  if (!admin || !user) throw new Error("ADMIN_PASSWORD / USER_PASSWORD must be set in .env");
   for (const u of [
     { username: "admin", displayName: "المدير", role: "admin" as const, pw: admin },
     { username: "islam", displayName: "م. إسلام", role: "user" as const, pw: user },

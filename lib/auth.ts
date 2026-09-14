@@ -6,7 +6,10 @@ import { eq } from "drizzle-orm";
 import { db, schema } from "@/db";
 
 const COOKIE = "taysir_session";
-const secret = () => new TextEncoder().encode(process.env.SESSION_SECRET ?? "dev-secret-change-me");
+const secret = () => {
+  if (!process.env.SESSION_SECRET) throw new Error("SESSION_SECRET is not set");
+  return new TextEncoder().encode(process.env.SESSION_SECRET);
+};
 
 export type SessionUser = { id: number; username: string; displayName: string; role: "admin" | "user" };
 
