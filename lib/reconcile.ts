@@ -46,9 +46,9 @@ export async function linkLegacyToAccount(legacyId: number, accountId: number) {
   }
   if (rows.length) await db.insert(schema.certificateItems).values(rows);
 
-  // no cashbox payments for this account? carry Islam's "ما سبق صرفه" as an opening balance so totals stay honest
+  // The cashbox is the only source of spending. If it has nothing for this account yet, flag it instead of inventing a payment.
   if (acc.payments.length === 0 && previousPaid > 0) {
-    await db.insert(schema.payments).values({ accountId, seq: 1, date: cert.date, amount: previousPaid, label: "رصيد سابق (من مستخلص إسلام — لا يوجد بالصندوق)", isOpening: true, note: cert.sourceFile });
+    await db.update(schema.accounts).set({ needsReview: true, reviewNote: `ورقة إسلام تقول سبق صرفه ${previousPaid.toLocaleString("en")} ولا توجد دفعات لهذا الحساب في ملفات الصندوق الحالية — أضف دفعاته عند وصول ورقته` }).where(eq(schema.accounts.id, accountId));
   }
   if (!acc.party.phone && cert.phone) await db.update(schema.parties).set({ phone: cert.phone }).where(eq(schema.parties.id, acc.partyId));
   await db.update(schema.legacyCertificates).set({ status: "linked", linkedAccountId: accountId, linkedCertificateId: c.id }).where(eq(schema.legacyCertificates.id, legacyId));

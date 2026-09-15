@@ -1,14 +1,21 @@
 import "dotenv/config";
-import { eq, sql } from "drizzle-orm";
-import { db, schema } from "../db";
+import { sql } from "drizzle-orm";
+import { db } from "../db";
 
-/** Paper 34 (عامر / بلاط بيت ممدوح) lists «وزره» twice (house 122 m, استراحة 147 m); both rows were mapped to one account item. Split them. */
+/** The cashbox is the only source of spending. Remove the "opening balance" rows that were copied from
+ *  Islam's papers, and flag those accounts so their real cashbox rows get added when the missing sheets arrive. */
 async function main() {
-  const [acc] = await db.select({ accountId: schema.accountItems.accountId }).from(schema.accountItems).where(eq(schema.accountItems.id, 198));
-  const [row] = await db.insert(schema.accountItems).values({ accountId: acc.accountId, sort: 99, description: "وزره (الاستراحة)", unit: "م/ط", price: 5, cumQty: 147 }).returning({ id: schema.accountItems.id });
-  await db.update(schema.certificateItems).set({ accountItemId: row.id, description: "وزره (الاستراحة)" }).where(eq(schema.certificateItems.id, 204));
-  await db.update(schema.accountItems).set({ cumQty: 122 }).where(eq(schema.accountItems.id, 198));
-  const check = (await db.execute(sql`select id, description, cum_qty::float from account_items where account_id = ${acc.accountId} and description like 'وزره%'`)).rows;
-  console.log(check);
+  const rows = (await db.execute(sql`
+    select p.account_id, a.title, pr.name project, p.amount::float amount from payments p
+    join accounts a on a.id = p.account_id join projects pr on pr.id = a.project_id where p.is_opening`)).rows as { account_id: number; title: string; project: string; amount: number }[];
+  for (const r of rows) {
+    await db.execute(sql`update accounts set needs_review = true,
+      review_note = ${`ورقة إسلام تقول سبق صرفه ${r.amount.toLocaleString("en")} ولا توجد دفعات لهذا الحساب في ملفات الصندوق الحالية — أضف دفعاته عند وصول ورقته`}
+      where id = ${r.account_id}`);
+    console.log(`#${r.account_id} [${r.project}] ${r.title}: ${r.amount.toLocaleString("en")}`);
+  }
+  const del = await db.execute(sql`delete from payments where is_opening returning id`);
+  const [t] = (await db.execute(sql`select coalesce(sum(amount),0)::float s from payments`)).rows as { s: number }[];
+  console.log(`removed ${del.rows.length} opening rows; grand total now ${t.s.toLocaleString("en")}`);
 }
 main();
