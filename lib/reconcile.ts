@@ -31,7 +31,9 @@ export async function linkLegacyToAccount(legacyId: number, accountId: number) {
     const totalQty = it.totalQty ?? (((it.prevQty ?? 0) + (it.currentQty ?? 0)) || (it.amount && it.price ? it.amount / it.price : 0));
     const price = it.price ?? (it.amount && totalQty ? it.amount / totalQty : 0);
     const amount = it.amount ?? totalQty * price;
-    const key = normalizeArabic(it.description);
+    // a paper may list the same description twice (different locations) — keep them as separate items
+    const seenInPaper = items.slice(0, k).some((o) => normalizeArabic(o.description) === normalizeArabic(it.description));
+    const key = seenInPaper ? `${normalizeArabic(it.description)}#${k}` : normalizeArabic(it.description);
     let ai = existing.get(key);
     if (ai) {
       await db.update(schema.accountItems).set({ cumQty: totalQty, price, unit: it.unit || ai.unit }).where(eq(schema.accountItems.id, ai.id));
