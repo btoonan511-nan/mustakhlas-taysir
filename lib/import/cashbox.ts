@@ -56,7 +56,7 @@ export function toIsoDate(v: unknown): string | null {
   return null;
 }
 
-const isHeaderCell = (c: unknown) => /^(م|الدفعات|التاريخ|المبلغ|الدفع|رقم السند|الفواتير)$/.test(cleanText(c));
+const isHeaderCell = (c: unknown) => /^(م|الدفعات|التاريخ|المبلغ|الدفع|رقم السند|الفواتير|رقم الفاتورة)$|^مبلغ /.test(cleanText(c));
 const isTotalCell = (c: unknown) => /^الإج.*ي$|^الاج.*ي$|^إجمالي|^اجمالي/.test(cleanText(c).replace(/ـ/g, ""));
 
 type Cell = string | number;
@@ -69,11 +69,15 @@ function headerLayout(row: Cell[]) {
     if (t === "م" && cols.seq === undefined) cols.seq = i;
     else if (t === "الدفعات" && cols.label === undefined) cols.label = i;
     else if (t === "التاريخ" && cols.date === undefined) cols.date = i;
+    else if (t === "التاريخ") cols.date2 = i; // supplier sheets: second date column belongs to the transfer
     else if (t === "المبلغ" && cols.amount === undefined) cols.amount = i;
     else if (t === "الدفع" && cols.method === undefined) cols.method = i;
     else if (t === "رقم السند" && cols.voucher === undefined) cols.voucher = i;
     else if (t === "الفواتير" && cols.invoice === undefined) cols.invoice = i;
+    else if (/^مبلغ (ال)?تحويل/.test(t)) { cols.amount = i; cols.transfer = 1; } // supplier sheets: "مبلغ التحويل" is the cash actually paid
+    else if (/^مبلغ/.test(t) && cols.amount === undefined) cols.amount = i;
   });
+  if (cols.transfer && cols.date2 !== undefined) cols.date = cols.date2;
   return cols;
 }
 

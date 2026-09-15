@@ -27,90 +27,84 @@ export default async function ReconciliationPage({ searchParams }: { searchParam
         <p className="text-sm text-stone-500">مرة واحدة: اربط مستخلصات إسلام القديمة بحسابات الصندوق لتنسحب بنود الأعمال إليها، وراجع الحسابات المعلّمة.</p>
       </div>
       <div className="flex gap-2 border-b border-stone-200">
-        <Tab href="/reconciliation?tab=legacy" active={tab === "legacy"} label={`مستخلصات إسلام (${pending.length})`} />
-        <Tab href="/reconciliation?tab=accounts" active={tab === "accounts"} label={`حسابات تحتاج مراجعة (${flagged.length})`} />
+        <Tab href="/reconciliation?tab=legacy" active={tab === "legacy"} label={`أوراق إسلام القديمة — بانتظار الربط (${pending.length})`} />
+        <Tab href="/reconciliation?tab=accounts" active={tab === "accounts"} label={`حسابات فيها ملاحظة (${flagged.length})`} />
         <Tab href="/reconciliation?tab=done" active={tab === "done"} label={`المربوطة (${linked.length}) · المتجاهَلة (${ignored.length})`} />
       </div>
 
       {tab === "legacy" && (
         <div className="space-y-3">
+          <div className="card p-4 bg-emerald-50 border-emerald-200 text-sm leading-relaxed">
+            <b>وش المطلوب هنا؟</b> كل بطاقة تحت هي ورقة مستخلص قديمة من إسلام. السؤال الوحيد: <b>هذي الورقة تخص أي حساب في الصندوق؟</b><br />
+            • إذا أحد الأزرار الخضراء صح → اضغطه وخلاص (تنسحب بنود الورقة لذلك الحساب).<br />
+            • إذا المقاول ما له حساب بالصندوق أصلاً → اضغط «حساب جديد».<br />
+            • إذا الورقة ما لها قيمة → «تجاهل».
+          </div>
           <datalist id="all-accounts">{accountOptions.map((a) => <option key={a.id} value={`#${a.id} · ${a.party} — ${a.title} (${a.project})`} />)}</datalist>
           {pending.length === 0 && <p className="card p-6 text-center text-stone-500">🎉 كل مستخلصات إسلام مربوطة.</p>}
           {pending.map((c) => {
             const items = legacyItems(c);
-            const cands = candidates({ projectId: c.projectId, contractorRaw: c.contractorRaw, workTypeRaw: c.workTypeRaw, date: c.date, previousPaid: c.previousPaid, total: c.total }, accounts);
-            const warnings = Array.isArray(c.warnings) ? (c.warnings as string[]) : [];
+            const cands = candidates({ projectId: c.projectId, contractorRaw: c.contractorRaw, workTypeRaw: c.workTypeRaw, date: c.date, previousPaid: c.previousPaid, total: c.total }, accounts).slice(0, 3);
             return (
               <div key={c.id} className="card p-4">
-                <div className="flex flex-wrap justify-between gap-2">
+                <div className="flex flex-wrap justify-between gap-2 items-start">
                   <div>
-                    <div className="font-bold text-lg">{c.contractorRaw || "—"} <span className="text-stone-400 font-normal num text-sm">{c.phone}</span> · {c.workTypeRaw || "—"}</div>
-                    <div className="text-sm text-stone-600">
-                      مشروع: {c.project ? <b>{c.project.name}</b> : <span className="text-red-600">غير محدد ({c.projectRaw})</span>}
-                      <span className="mx-2">·</span> التاريخ: <span className="num">{c.date ? fmtDate(c.date) : <span className="text-red-600">{c.dateRaw || "—"}</span>}</span>
-                      <span className="mx-2">·</span> <span className="text-stone-400 text-xs">{c.sourceFile} #{c.sourceIndex + 1}</span>
+                    <div className="text-xs text-stone-500">ورقة إسلام</div>
+                    <div className="font-bold text-xl">{c.contractorRaw || "—"} <span className="text-stone-500 font-normal text-base">· {c.workTypeRaw || "—"}</span></div>
+                    <div className="text-sm text-stone-600 mt-1">
+                      المشروع: {c.project ? <b>{c.project.name}</b> : <span className="text-red-600 font-semibold">غير معروف («{c.projectRaw}»)</span>}
+                      <span className="mx-2">·</span> التاريخ: <span className="num">{c.date ? fmtDate(c.date) : (c.dateRaw || "—")}</span>
                     </div>
                   </div>
-                  <div className="text-sm text-left">
-                    <div>الإجمالي: <b className="num">{money(c.total)}</b></div>
-                    <div>سبق صرفه: <b className="num">{money(c.previousPaid)}</b></div>
-                    <div>المستحق: <b className="num">{money(c.due)}</b></div>
+                  <div className="text-sm text-left bg-stone-50 rounded-lg px-3 py-2">
+                    <div>إجمالي الأعمال: <b className="num">{money(c.total)}</b></div>
+                    <div>سبق صرفه (حسب إسلام): <b className="num">{money(c.previousPaid)}</b></div>
                   </div>
                 </div>
-                {warnings.length > 0 && <div className="mt-2 text-xs text-amber-700">⚠ {warnings.join(" · ")}</div>}
 
-                <Details title={`بنود الأعمال (${items.length})`} className="mt-3 border-stone-100! shadow-none!">
-                  <table className="table text-xs">
+                <div className="mt-4 text-sm font-semibold text-stone-700">هذي الورقة تخص أي حساب في الصندوق؟</div>
+                <div className="mt-2 grid gap-2">
+                  {cands.map((k) => (
+                    <form key={k.accountId} action={linkLegacyAction}>
+                      <input type="hidden" name="legacyId" value={c.id} /><input type="hidden" name="accountId" value={k.accountId} />
+                      <button className="w-full text-right rounded-lg border-2 border-emerald-600 bg-white hover:bg-emerald-50 px-4 py-3 transition">
+                        <div className="font-bold text-emerald-800">✔ {k.party} — {k.title}</div>
+                        <div className="text-xs text-stone-600 mt-0.5">{k.project} · {k.workType} · مصروف من الصندوق <span className="num">{money(k.paid)}</span>{k.paidBefore !== k.paid ? <> (حتى تاريخ الورقة <span className="num">{money(k.paidBefore)}</span>)</> : null}</div>
+                        <div className="text-xs text-emerald-700 mt-0.5">لماذا مرشّح: {k.reasons.join("، ")}</div>
+                      </button>
+                    </form>
+                  ))}
+                  {cands.length === 0 && <p className="text-sm text-stone-500 rounded-lg border border-dashed border-stone-300 px-4 py-3">ما لقيت حساب مشابه بالصندوق — غالباً هذا مقاول ما انصرف له من الصندوق، فاضغط «حساب جديد».</p>}
+                  <div className="flex flex-wrap gap-2 items-end">
+                    <form action={createAccountFromLegacyAction} className="flex gap-2 items-end flex-1 min-w-[280px]">
+                      <input type="hidden" name="legacyId" value={c.id} /><input type="hidden" name="partyName" value={c.contractorRaw} />
+                      {c.projectId ? <input type="hidden" name="projectId" value={c.projectId} /> : (
+                        <div className="flex-1"><label className="label">حدد المشروع أولاً</label><select name="projectId" className="input" required defaultValue=""><option value="">—</option>{opts.projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select></div>
+                      )}
+                      <button className="btn-secondary">+ حساب جديد لـ «{c.contractorRaw || "المقاول"}»{c.project ? ` في ${c.project.name}` : ""}</button>
+                    </form>
+                    <form action={ignoreLegacyAction}><input type="hidden" name="legacyId" value={c.id} /><ConfirmButton className="btn-danger" message="تجاهل هذه الورقة؟ (يمكن استرجاعها من تبويب المتجاهَلة)">تجاهل</ConfirmButton></form>
+                  </div>
+                </div>
+
+                <Details title={`بنود الورقة (${items.length}) · خيارات إضافية`} className="mt-3 border-stone-100! shadow-none!">
+                  <table className="table text-xs mb-3">
                     <thead><tr><th>البيان</th><th>الوحدة</th><th>سابق</th><th>حالي</th><th>جملة</th><th>السعر</th><th>القيمة</th></tr></thead>
                     <tbody>{items.map((it, i) => <tr key={i}><td>{it.description}</td><td>{it.unit}</td><td className="num">{it.prevQty ?? "—"}</td><td className="num">{it.currentQty ?? "—"}</td><td className="num">{it.totalQty ?? "—"}</td><td className="num">{it.price ?? "—"}</td><td className="num">{money(it.amount)}</td></tr>)}</tbody>
                   </table>
+                  <form action={linkLegacyAction} className="flex gap-2 items-end">
+                    <input type="hidden" name="legacyId" value={c.id} />
+                    <div className="flex-1"><label className="label">ربط بحساب آخر غير المرشحين (اكتب اسم المقاول واختر)</label><input name="accountPick" list="all-accounts" className="input" placeholder="اكتب هنا…" /></div>
+                    <button className="btn-secondary">ربط</button>
+                  </form>
+                  {!c.projectId && (
+                    <form action={setLegacyProjectAction} className="flex gap-2 items-end mt-2">
+                      <input type="hidden" name="legacyId" value={c.id} />
+                      <div className="flex-1"><label className="label">تصحيح مشروع الورقة فقط (بدون ربط)</label><select name="projectId" className="input" defaultValue=""><option value="">—</option>{opts.projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select></div>
+                      <button className="btn-secondary">حفظ</button>
+                    </form>
+                  )}
                 </Details>
-
-                <div className="mt-3 grid md:grid-cols-2 gap-3">
-                  <div>
-                    <div className="text-xs font-semibold text-stone-500 mb-1">الحسابات المرشّحة من الصندوق</div>
-                    {cands.length === 0 && <p className="text-sm text-stone-400">لا يوجد مرشح واضح — اختر من القائمة أو أنشئ حساباً جديداً.</p>}
-                    <ul className="space-y-1">
-                      {cands.map((k) => (
-                        <li key={k.accountId} className="flex items-center justify-between gap-2 rounded-lg border border-stone-200 px-3 py-2 text-sm">
-                          <div>
-                            <Link href={`/accounts/${k.accountId}`} target="_blank" className="font-medium hover:underline">{k.party} — {k.title}</Link>
-                            <div className="text-xs text-stone-500">{k.project} · {k.workType} · صُرف <span className="num">{money(k.paid)}</span>{k.paidBefore !== k.paid ? <> (حتى تاريخ المستخلص <span className="num">{money(k.paidBefore)}</span>)</> : null}</div>
-                            <div className="text-xs text-emerald-700">{k.reasons.join(" · ")}</div>
-                          </div>
-                          <form action={linkLegacyAction}><input type="hidden" name="legacyId" value={c.id} /><input type="hidden" name="accountId" value={k.accountId} /><button className="btn-primary btn-sm">ربط</button></form>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                  <div className="space-y-2">
-                    <form action={linkLegacyAction} className="flex gap-2 items-end">
-                      <input type="hidden" name="legacyId" value={c.id} />
-                      <div className="flex-1"><label className="label">أو اختر أي حساب</label>
-                        <input name="accountPick" list="all-accounts" className="input" placeholder="اكتب اسم المقاول أو الحساب…" /></div>
-                      <button className="btn-secondary">ربط</button>
-                    </form>
-                    <form action={createAccountFromLegacyAction} className="flex gap-2 items-end">
-                      <input type="hidden" name="legacyId" value={c.id} />
-                      <div className="flex-1"><label className="label">أو أنشئ حساباً جديداً (لا يوجد له بالصندوق)</label>
-                        <div className="flex gap-2">
-                          <select name="projectId" className="input" defaultValue={c.projectId ?? ""}><option value="">المشروع…</option>{opts.projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select>
-                          <input name="partyName" className="input" defaultValue={c.contractorRaw} placeholder="اسم المقاول" />
-                        </div></div>
-                      <button className="btn-secondary">إنشاء وربط</button>
-                    </form>
-                    <div className="flex gap-2 items-end">
-                      {!c.projectId && (
-                        <form action={setLegacyProjectAction} className="flex gap-2 items-end flex-1">
-                          <input type="hidden" name="legacyId" value={c.id} />
-                          <div className="flex-1"><label className="label">تحديد مشروع المستخلص</label><select name="projectId" className="input" defaultValue=""><option value="">—</option>{opts.projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select></div>
-                          <button className="btn-secondary">حفظ</button>
-                        </form>
-                      )}
-                      <form action={ignoreLegacyAction}><input type="hidden" name="legacyId" value={c.id} /><ConfirmButton className="btn-danger" message="تجاهل هذا المستخلص؟ (يمكن استرجاعه لاحقاً)">تجاهل</ConfirmButton></form>
-                    </div>
-                  </div>
-                </div>
               </div>
             );
           })}
@@ -118,6 +112,10 @@ export default async function ReconciliationPage({ searchParams }: { searchParam
       )}
 
       {tab === "accounts" && (
+        <div className="space-y-3">
+          <div className="card p-4 bg-amber-50 border-amber-200 text-sm leading-relaxed">
+            <b>وش المطلوب هنا؟</b> حسابات علّمها الاستيراد بملاحظة (مثلاً: أي مسجد؟ أو مجموع لا يطابق). اقرأ السبب، صحّح المشروع أو الجهة إذا لزم، ثم اضغط <b>«تم»</b> عشان تختفي. ما فيه شي إجباري — الأرقام محسوبة سواء راجعتها أو لا.
+          </div>
         <div className="card overflow-x-auto">
           <table className="table">
             <thead><tr><th>الحساب</th><th>الجهة</th><th>المشروع الحالي</th><th>السبب</th><th>المصروف</th><th>الإجراء</th></tr></thead>
@@ -144,6 +142,7 @@ export default async function ReconciliationPage({ searchParams }: { searchParam
               {flagged.length === 0 && <tr><td colSpan={6} className="text-center text-stone-500 py-6">لا توجد حسابات معلّمة للمراجعة.</td></tr>}
             </tbody>
           </table>
+        </div>
         </div>
       )}
 
