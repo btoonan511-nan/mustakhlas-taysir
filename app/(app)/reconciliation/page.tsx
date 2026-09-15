@@ -5,7 +5,7 @@ import { requireAdmin } from "@/lib/auth";
 import { pendingLegacy, allAccountsLite, candidates, legacyItems } from "@/lib/queries/reconciliation";
 import { lookups } from "@/lib/queries/accounts";
 import { money, fmtDate, CATEGORY_LABEL } from "@/lib/format";
-import { linkLegacyAction, ignoreLegacyAction, restoreLegacyAction, setLegacyProjectAction, resolveAccountAction } from "@/app/actions/reconciliation";
+import { linkLegacyAction, createAccountFromLegacyAction, ignoreLegacyAction, restoreLegacyAction, setLegacyProjectAction, resolveAccountAction } from "@/app/actions/reconciliation";
 import { ConfirmButton } from "@/app/(app)/confirm-button";
 import { Details } from "@/app/(app)/details";
 
@@ -37,7 +37,7 @@ export default async function ReconciliationPage({ searchParams }: { searchParam
           <div className="card p-4 bg-emerald-50 border-emerald-200 text-sm leading-relaxed">
             <b>وش المطلوب هنا؟</b> كل بطاقة تحت هي ورقة مستخلص قديمة من إسلام. السؤال الوحيد: <b>هذي الورقة تخص أي حساب في الصندوق؟</b><br />
             • إذا أحد الأزرار الخضراء صح → اضغطه وخلاص. الربط <b>ينسخ بنود الأعمال كوصف للحساب فقط</b> — ما يغيّر أي مبلغ؛ المبالغ كلها من الصندوق.<br />
-            • إذا المقاول ما له ورقة صندوق بعد → «أجّل» حتى تصل ورقته وتُستورد، ثم ارجع واربطها.
+            • إذا المقاول ما له ورقة صندوق بعد → إما «سجّله بدون مبالغ وضع علامة» (يظهر الحساب بصفر مصروف مع علامة ⚑ حتى تصل ورقته)، أو «أجّل».
           </div>
           <datalist id="all-accounts">{accountOptions.map((a) => <option key={a.id} value={`#${a.id} · ${a.party} — ${a.title} (${a.project})`} />)}</datalist>
           {pending.length === 0 && <p className="card p-6 text-center text-stone-500">🎉 كل مستخلصات إسلام مربوطة.</p>}
@@ -75,6 +75,13 @@ export default async function ReconciliationPage({ searchParams }: { searchParam
                   ))}
                   {cands.length === 0 && <p className="text-sm text-stone-500 rounded-lg border border-dashed border-stone-300 px-4 py-3">ما لقيت حساب مشابه بالصندوق — غالباً ورقة صندوقه ما وصلت بعد، فاضغط «أجّل».</p>}
                   <div className="flex flex-wrap gap-2 items-end">
+                    <form action={createAccountFromLegacyAction} className="flex gap-2 items-end">
+                      <input type="hidden" name="legacyId" value={c.id} /><input type="hidden" name="partyName" value={c.contractorRaw} />
+                      {c.projectId ? <input type="hidden" name="projectId" value={c.projectId} /> : (
+                        <select name="projectId" className="input w-44" required defaultValue=""><option value="">المشروع…</option>{opts.projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select>
+                      )}
+                      <ConfirmButton className="btn-secondary" message="تسجيل الحساب بدون أي مبلغ ووضع علامة «لا توجد ورقة صندوق»؟">⚑ سجّله بدون مبالغ وضع علامة</ConfirmButton>
+                    </form>
                     <form action={ignoreLegacyAction}><input type="hidden" name="legacyId" value={c.id} /><ConfirmButton className="btn-secondary" message="تأجيل هذه الورقة حتى تصل ورقة الصندوق؟ (تسترجعها من تبويب المؤجّلة)">أجّل — ما له ورقة صندوق بعد</ConfirmButton></form>
                   </div>
                 </div>

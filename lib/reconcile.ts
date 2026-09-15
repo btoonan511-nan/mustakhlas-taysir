@@ -37,7 +37,26 @@ export async function linkLegacyToAccount(legacyId: number, accountId: number) {
   return accountId;
 }
 
-/** Accounts are only ever created from cashbox sheets (or by hand). A paper without a cashbox account waits. */
-export async function createAccountFromLegacy(): Promise<number> {
-  throw new Error("الحسابات تُنشأ من أوراق الصندوق فقط — أجّل هذه الورقة حتى تصل ورقة صندوقها");
+/** Register a paper whose contractor has no cashbox sheet yet: the account is created with ZERO payments
+ *  (money only ever comes from the cashbox), its items are seeded from the paper, and it is flagged so the
+ *  cashbox rows get added when the sheet arrives. */
+export async function createAccountFromLegacy(legacyId: number, projectId: number, partyNameOverride?: string, category: "contractor" | "supplier" | "equipment" | "rental" | "other" = "contractor") {
+  const cert = await db.query.legacyCertificates.findFirst({ where: eq(schema.legacyCertificates.id, legacyId) });
+  if (!cert) throw new Error("غير موجود");
+  const partyName = partyNameOverride?.trim() || cert.contractorRaw || "غير معروف";
+  const all = await db.select().from(schema.parties);
+  let party = all.find((p) => normalizeArabic(p.name) === normalizeArabic(partyName));
+  if (!party) [party] = await db.insert(schema.parties).values({ name: partyName, phone: cert.phone, category }).returning();
+  const wtName = canonicalWorkType(cert.workTypeRaw);
+  let [wt] = await db.select().from(schema.workTypes).where(eq(schema.workTypes.name, wtName));
+  if (!wt) [wt] = await db.insert(schema.workTypes).values({ name: wtName }).returning();
+  const paid = (cert.previousPaid ?? 0).toLocaleString("en");
+  const [acc] = await db.insert(schema.accounts).values({
+    projectId, partyId: party.id, workTypeId: wt.id, title: `${party.name} / ${cert.workTypeRaw || wtName}`,
+    notes: `سُجّل من ورقة إسلام (${cert.sourceFile}) بدون مبالغ`, needsReview: true,
+    reviewNote: `⚑ لا توجد ورقة صندوق لهذا الحساب — ورقة إسلام تقول سبق صرفه ${paid}. أضف دفعاته عند وصول ورقة الصندوق`,
+  }).returning({ id: schema.accounts.id });
+  await db.update(schema.legacyCertificates).set({ projectId }).where(eq(schema.legacyCertificates.id, legacyId));
+  await linkLegacyToAccount(legacyId, acc.id);
+  return acc.id;
 }

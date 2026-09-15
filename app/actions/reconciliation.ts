@@ -30,8 +30,8 @@ export async function createAccountFromLegacyAction(fd: FormData) {
   const legacyId = id(fd, "legacyId")!;
   const projectId = id(fd, "projectId");
   if (!projectId) throw new Error("حدد المشروع أولاً");
-  void legacyId; void projectId;
-  await createAccountFromLegacy();
+  const accId = await createAccountFromLegacy(legacyId, projectId, s(fd, "partyName"));
+  revalidateAll(accId);
 }
 
 export async function ignoreLegacyAction(fd: FormData) {
