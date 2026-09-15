@@ -5,7 +5,7 @@ import { requireAdmin } from "@/lib/auth";
 import { pendingLegacy, allAccountsLite, candidates, legacyItems } from "@/lib/queries/reconciliation";
 import { lookups } from "@/lib/queries/accounts";
 import { money, fmtDate, CATEGORY_LABEL } from "@/lib/format";
-import { linkLegacyAction, createAccountFromLegacyAction, ignoreLegacyAction, restoreLegacyAction, setLegacyProjectAction, resolveAccountAction } from "@/app/actions/reconciliation";
+import { linkLegacyAction, ignoreLegacyAction, restoreLegacyAction, setLegacyProjectAction, resolveAccountAction } from "@/app/actions/reconciliation";
 import { ConfirmButton } from "@/app/(app)/confirm-button";
 import { Details } from "@/app/(app)/details";
 
@@ -29,16 +29,15 @@ export default async function ReconciliationPage({ searchParams }: { searchParam
       <div className="flex gap-2 border-b border-stone-200">
         <Tab href="/reconciliation?tab=legacy" active={tab === "legacy"} label={`أوراق إسلام القديمة — بانتظار الربط (${pending.length})`} />
         <Tab href="/reconciliation?tab=accounts" active={tab === "accounts"} label={`حسابات فيها ملاحظة (${flagged.length})`} />
-        <Tab href="/reconciliation?tab=done" active={tab === "done"} label={`المربوطة (${linked.length}) · المتجاهَلة (${ignored.length})`} />
+        <Tab href="/reconciliation?tab=done" active={tab === "done"} label={`المربوطة (${linked.length}) · المؤجّلة (${ignored.length})`} />
       </div>
 
       {tab === "legacy" && (
         <div className="space-y-3">
           <div className="card p-4 bg-emerald-50 border-emerald-200 text-sm leading-relaxed">
             <b>وش المطلوب هنا؟</b> كل بطاقة تحت هي ورقة مستخلص قديمة من إسلام. السؤال الوحيد: <b>هذي الورقة تخص أي حساب في الصندوق؟</b><br />
-            • إذا أحد الأزرار الخضراء صح → اضغطه وخلاص (تنسحب بنود الورقة لذلك الحساب).<br />
-            • إذا المقاول ما له حساب بالصندوق أصلاً → اضغط «حساب جديد».<br />
-            • إذا الورقة ما لها قيمة → «تجاهل».
+            • إذا أحد الأزرار الخضراء صح → اضغطه وخلاص. الربط <b>ينسخ بنود الأعمال كوصف للحساب فقط</b> — ما يغيّر أي مبلغ؛ المبالغ كلها من الصندوق.<br />
+            • إذا المقاول ما له ورقة صندوق بعد → «أجّل» حتى تصل ورقته وتُستورد، ثم ارجع واربطها.
           </div>
           <datalist id="all-accounts">{accountOptions.map((a) => <option key={a.id} value={`#${a.id} · ${a.party} — ${a.title} (${a.project})`} />)}</datalist>
           {pending.length === 0 && <p className="card p-6 text-center text-stone-500">🎉 كل مستخلصات إسلام مربوطة.</p>}
@@ -74,16 +73,9 @@ export default async function ReconciliationPage({ searchParams }: { searchParam
                       </button>
                     </form>
                   ))}
-                  {cands.length === 0 && <p className="text-sm text-stone-500 rounded-lg border border-dashed border-stone-300 px-4 py-3">ما لقيت حساب مشابه بالصندوق — غالباً هذا مقاول ما انصرف له من الصندوق، فاضغط «حساب جديد».</p>}
+                  {cands.length === 0 && <p className="text-sm text-stone-500 rounded-lg border border-dashed border-stone-300 px-4 py-3">ما لقيت حساب مشابه بالصندوق — غالباً ورقة صندوقه ما وصلت بعد، فاضغط «أجّل».</p>}
                   <div className="flex flex-wrap gap-2 items-end">
-                    <form action={createAccountFromLegacyAction} className="flex gap-2 items-end flex-1 min-w-[280px]">
-                      <input type="hidden" name="legacyId" value={c.id} /><input type="hidden" name="partyName" value={c.contractorRaw} />
-                      {c.projectId ? <input type="hidden" name="projectId" value={c.projectId} /> : (
-                        <div className="flex-1"><label className="label">حدد المشروع أولاً</label><select name="projectId" className="input" required defaultValue=""><option value="">—</option>{opts.projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select></div>
-                      )}
-                      <button className="btn-secondary">+ حساب جديد لـ «{c.contractorRaw || "المقاول"}»{c.project ? ` في ${c.project.name}` : ""}</button>
-                    </form>
-                    <form action={ignoreLegacyAction}><input type="hidden" name="legacyId" value={c.id} /><ConfirmButton className="btn-danger" message="تجاهل هذه الورقة؟ (يمكن استرجاعها من تبويب المتجاهَلة)">تجاهل</ConfirmButton></form>
+                    <form action={ignoreLegacyAction}><input type="hidden" name="legacyId" value={c.id} /><ConfirmButton className="btn-secondary" message="تأجيل هذه الورقة حتى تصل ورقة الصندوق؟ (تسترجعها من تبويب المؤجّلة)">أجّل — ما له ورقة صندوق بعد</ConfirmButton></form>
                   </div>
                 </div>
 
@@ -151,15 +143,15 @@ export default async function ReconciliationPage({ searchParams }: { searchParam
           <div className="card overflow-x-auto">
             <h2 className="font-semibold p-4 pb-0">المربوطة</h2>
             <table className="table">
-              <thead><tr><th>المقاول</th><th>نوع العمل</th><th>التاريخ</th><th>الإجمالي</th><th>ربط بـ</th></tr></thead>
+              <thead><tr><th>المقاول</th><th>نوع العمل</th><th>التاريخ</th><th>الإجمالي</th><th>وصفها على حساب</th></tr></thead>
               <tbody>{linked.map((c) => (
                 <tr key={c.id}><td>{c.contractorRaw}</td><td>{c.workTypeRaw}</td><td className="num">{fmtDate(c.date)}</td><td className="num">{money(c.total)}</td>
-                  <td>{c.linkedAccount ? <Link href={`/accounts/${c.linkedAccount.id}`} className="hover:underline">{c.linkedAccount.title}</Link> : "—"} {c.linkedCertificateId && <Link href={`/certificates/${c.linkedCertificateId}`} className="text-emerald-700 text-xs mr-2">المستخلص</Link>}</td></tr>
+                  <td>{c.linkedAccount ? <Link href={`/accounts/${c.linkedAccount.id}`} className="hover:underline">{c.linkedAccount.title}</Link> : "—"}</td></tr>
               ))}</tbody>
             </table>
           </div>
           <div className="card overflow-x-auto">
-            <h2 className="font-semibold p-4 pb-0">المتجاهَلة</h2>
+            <h2 className="font-semibold p-4 pb-0">المؤجّلة — بانتظار ورقة الصندوق</h2>
             <table className="table">
               <thead><tr><th>المقاول</th><th>نوع العمل</th><th>المشروع</th><th>الإجمالي</th><th></th></tr></thead>
               <tbody>{ignored.map((c) => (
