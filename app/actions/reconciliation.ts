@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { and, eq } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { requireAdmin } from "@/lib/auth";
-import { linkLegacyToAccount, createAccountFromLegacy } from "@/lib/reconcile";
+import { linkLegacyToAccount, createAccountFromLegacy, markPaidByIslam } from "@/lib/reconcile";
 
 const id = (fd: FormData, k: string) => { const v = Number(fd.get(k)); return Number.isFinite(v) && v > 0 ? v : null; };
 const s = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
@@ -31,6 +31,17 @@ export async function createAccountFromLegacyAction(fd: FormData) {
   const projectId = id(fd, "projectId");
   if (!projectId) throw new Error("حدد المشروع أولاً");
   const accId = await createAccountFromLegacy(legacyId, projectId, s(fd, "partyName"));
+  revalidateAll(accId);
+}
+
+/** Register (if needed) then mark the account as paid by Islam directly. */
+export async function paidByIslamAction(fd: FormData) {
+  await requireAdmin();
+  const legacyId = id(fd, "legacyId")!;
+  const projectId = id(fd, "projectId");
+  if (!projectId) throw new Error("حدد المشروع أولاً");
+  const accId = await createAccountFromLegacy(legacyId, projectId, s(fd, "partyName"));
+  await markPaidByIslam(legacyId, accId);
   revalidateAll(accId);
 }
 

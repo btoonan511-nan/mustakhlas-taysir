@@ -33,3 +33,5 @@ export const CATEGORY_LABEL: Record<string, string> = {
   rental: "إيجار",
   other: "أخرى",
 };
+
+export const SOURCE_LABEL: Record<string, string> = { cashbox: "الصندوق", islam: "إسلام مباشرة" };

@@ -2,7 +2,7 @@ import * as XLSX from "xlsx";
 import { eq } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { getUser } from "@/lib/auth";
-import { CATEGORY_LABEL } from "@/lib/format";
+import { CATEGORY_LABEL, SOURCE_LABEL } from "@/lib/format";
 
 export async function GET(req: Request) {
   const user = await getUser();
@@ -14,7 +14,7 @@ export async function GET(req: Request) {
   let name = type;
   if (type === "payments") {
     const r = await db.select().from(payments).innerJoin(accounts, eq(payments.accountId, accounts.id)).innerJoin(parties, eq(accounts.partyId, parties.id)).innerJoin(projects, eq(accounts.projectId, projects.id)).leftJoin(workTypes, eq(accounts.workTypeId, workTypes.id)).orderBy(projects.name, parties.name, accounts.id, payments.date);
-    rows = r.map((x) => ({ "المشروع": x.projects.name, "الجهة": x.parties.name, "التصنيف": CATEGORY_LABEL[x.parties.category], "نوع العمل": x.work_types?.name ?? "", "الحساب": x.accounts.title, "م": x.payments.seq, "البيان": x.payments.label, "التاريخ": x.payments.date ?? x.payments.dateRaw, "المبلغ": x.payments.amount, "طريقة الدفع": x.payments.method, "رقم السند": x.payments.voucher, "ملاحظة": x.payments.note }));
+    rows = r.map((x) => ({ "المشروع": x.projects.name, "الجهة": x.parties.name, "التصنيف": CATEGORY_LABEL[x.parties.category], "نوع العمل": x.work_types?.name ?? "", "الحساب": x.accounts.title, "م": x.payments.seq, "البيان": x.payments.label, "التاريخ": x.payments.date ?? x.payments.dateRaw, "المبلغ": x.payments.amount, "المصدر": SOURCE_LABEL[x.payments.source], "طريقة الدفع": x.payments.method, "رقم السند": x.payments.voucher, "ملاحظة": x.payments.note }));
     name = "الدفعات";
   } else if (type === "accounts") {
     const r = await db.query.accounts.findMany({ with: { project: true, party: true, workType: true, payments: { columns: { amount: true } }, items: { columns: { cumQty: true, price: true, active: true } } } });

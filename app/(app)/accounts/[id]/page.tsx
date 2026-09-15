@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getAccount, lookups } from "@/lib/queries/accounts";
 import { requireUser } from "@/lib/auth";
-import { money, fmtDate, today, CATEGORY_LABEL } from "@/lib/format";
+import { money, fmtDate, today, CATEGORY_LABEL, SOURCE_LABEL } from "@/lib/format";
 import { addPaymentAction, deletePaymentAction, addItemAction, updateItemAction, deleteItemAction, updateAccountAction, deleteAccountAction } from "@/app/actions/accounts";
 import { ConfirmButton } from "@/app/(app)/confirm-button";
 import { Details } from "@/app/(app)/details";
@@ -93,7 +93,7 @@ export default async function AccountPage({ params }: { params: Promise<{ id: st
         <h2 className="font-semibold mb-3">دفعات الصندوق</h2>
         <div className="overflow-x-auto">
           <table className="table">
-            <thead><tr><th>م</th><th>البيان</th><th>التاريخ</th><th>المبلغ</th><th>طريقة الدفع</th><th>رقم السند</th><th>ملاحظة</th><th className="no-print"></th></tr></thead>
+            <thead><tr><th>م</th><th>البيان</th><th>التاريخ</th><th>المبلغ</th><th>المصدر</th><th>طريقة الدفع</th><th>رقم السند</th><th>ملاحظة</th><th className="no-print"></th></tr></thead>
             <tbody>
               {acc.payments.map((p, i) => (
                 <tr key={p.id} className={p.isOpening ? "bg-amber-50/50" : ""}>
@@ -101,6 +101,7 @@ export default async function AccountPage({ params }: { params: Promise<{ id: st
                   <td>{p.label}</td>
                   <td className="num">{p.date ? fmtDate(p.date) : <span className="text-red-600" title={p.dateRaw}>غير مقروء: {p.dateRaw || "—"}</span>}</td>
                   <td className="num font-medium">{money(p.amount)}</td>
+                  <td>{p.source === "islam" ? <span className="badge bg-sky-50 text-sky-700">إسلام</span> : <span className="text-stone-500 text-xs">الصندوق</span>}</td>
                   <td>{p.method || "—"}</td>
                   <td className="num">{p.voucher || "—"}</td>
                   <td className="text-stone-500 text-xs">{p.note}</td>
@@ -108,15 +109,16 @@ export default async function AccountPage({ params }: { params: Promise<{ id: st
                 </tr>
               ))}
             </tbody>
-            <tfoot><tr><td colSpan={3} className="font-bold">الإجمالي</td><td className="num font-bold">{money(paid)}</td><td colSpan={4}></td></tr></tfoot>
+            <tfoot><tr><td colSpan={3} className="font-bold">الإجمالي</td><td className="num font-bold">{money(paid)}</td><td colSpan={5} className="text-xs text-stone-500">{acc.payments.some((p) => p.source === "islam") ? `منها من إسلام مباشرة: ${money(acc.payments.filter((p) => p.source === "islam").reduce((s, p) => s + p.amount, 0))}` : ""}</td></tr></tfoot>
           </table>
         </div>
-        <form action={addPaymentAction} className="no-print mt-3 grid grid-cols-2 md:grid-cols-7 gap-2 items-end border-t border-stone-100 pt-3">
+        <form action={addPaymentAction} className="no-print mt-3 grid grid-cols-2 md:grid-cols-8 gap-2 items-end border-t border-stone-100 pt-3">
           <input type="hidden" name="accountId" value={acc.id} />
           <div className="col-span-2"><label className="label">البيان</label><input name="label" className="input" placeholder={`دفعة ${acc.payments.length + 1} من الحساب`} /></div>
           <div><label className="label">التاريخ</label><input type="date" name="date" defaultValue={today()} className="input" /></div>
           <div><label className="label">المبلغ</label><input name="amount" className="input num" required inputMode="decimal" /></div>
           <div><label className="label">طريقة الدفع</label><select name="method" className="input"><option value="نقداً">نقداً</option><option value="تحويل">تحويل</option><option value="شيك">شيك</option><option value="فاتورة">فاتورة</option></select></div>
+          <div><label className="label">المصدر</label><select name="source" className="input">{Object.entries(SOURCE_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></div>
           <div><label className="label">رقم السند</label><input name="voucher" className="input num" /></div>
           <div><button className="btn-primary w-full">+ إضافة دفعة</button></div>
         </form>

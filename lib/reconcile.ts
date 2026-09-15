@@ -37,6 +37,20 @@ export async function linkLegacyToAccount(legacyId: number, accountId: number) {
   return accountId;
 }
 
+/** Contractor is paid by Eng. Islam directly (never through the cashbox): record the paper's "سبق صرفه"
+ *  as a payment with source = islam and clear the missing-cashbox flag. */
+export async function markPaidByIslam(legacyId: number, accountId: number) {
+  const cert = await db.query.legacyCertificates.findFirst({ where: eq(schema.legacyCertificates.id, legacyId) });
+  if (!cert) throw new Error("غير موجود");
+  const amount = cert.previousPaid ?? 0;
+  if (amount > 0) {
+    const [{ max }] = await db.select({ max: sql<number>`coalesce(max(seq),0)::int` }).from(schema.payments).where(eq(schema.payments.accountId, accountId));
+    await db.insert(schema.payments).values({ accountId, seq: (max ?? 0) + 1, date: cert.date, amount, source: "islam", method: "من إسلام",
+      label: `سبق صرفه حسب مستخلص إسلام ${cert.date ?? ""} — يُصرف من إسلام مباشرة`, note: cert.sourceFile });
+  }
+  await db.update(schema.accounts).set({ needsReview: false, reviewNote: "", notes: "يُصرف من إسلام مباشرة، لا من الصندوق" }).where(eq(schema.accounts.id, accountId));
+}
+
 /** Register a paper whose contractor has no cashbox sheet yet: the account is created with ZERO payments
  *  (money only ever comes from the cashbox), its items are seeded from the paper, and it is flagged so the
  *  cashbox rows get added when the sheet arrives. */

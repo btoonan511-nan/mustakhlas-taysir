@@ -25,14 +25,14 @@ async function main() {
   console.log(`  ${"المجموع".padEnd(22)}                   ${fmt(grandRows).padStart(12)}                  ${fmt(grandDeclared).padStart(12)}`);
 
   const t = (await db.execute(sql`
-    select coalesce(sum(amount) filter (where not is_opening and amount > 0),0)::float cashbox,
+    select coalesce(sum(amount) filter (where source = 'cashbox' and amount > 0),0)::float cashbox,
            coalesce(sum(amount) filter (where amount < 0),0)::float deductions,
-           coalesce(sum(amount) filter (where is_opening),0)::float opening
+           coalesce(sum(amount) filter (where source = 'islam'),0)::float opening
     from payments`)).rows[0] as { cashbox: number; deductions: number; opening: number };
   console.log("\nفي الموقع:");
   console.log(`  دفعات الصندوق (موجبة)        ${fmt(t.cashbox)}`);
   console.log(`  خصومات (بالسالب)              ${fmt(t.deductions)}`);
-  console.log(`  أرصدة افتتاحية من أوراق إسلام ${fmt(t.opening)}`);
+  console.log(`  مصروف من إسلام مباشرة       ${fmt(t.opening)}`);
   console.log(`  الإجمالي في لوحة التحليل       ${fmt(t.cashbox + t.deductions + t.opening)}`);
 }
 main();

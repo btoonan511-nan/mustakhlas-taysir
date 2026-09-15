@@ -2,7 +2,7 @@ import { lookups } from "@/lib/queries/accounts";
 import { db, schema } from "@/db";
 import { eq } from "drizzle-orm";
 import { addPaymentAction } from "@/app/actions/accounts";
-import { today } from "@/lib/format";
+import { today, SOURCE_LABEL } from "@/lib/format";
 import { AccountPicker } from "./account-picker";
 
 export default async function NewPaymentPage() {
@@ -20,8 +20,9 @@ export default async function NewPaymentPage() {
           <div><label className="label">التاريخ</label><input type="date" name="date" defaultValue={today()} className="input" required /></div>
           <div><label className="label">المبلغ</label><input name="amount" className="input num" required inputMode="decimal" /></div>
           <div><label className="label">طريقة الدفع</label><select name="method" className="input"><option value="نقداً">نقداً</option><option value="تحويل">تحويل</option><option value="شيك">شيك</option><option value="فاتورة">فاتورة</option></select></div>
+          <div><label className="label">المصدر</label><select name="source" className="input">{Object.entries(SOURCE_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></div>
           <div><label className="label">رقم السند</label><input name="voucher" className="input num" /></div>
-          <div className="col-span-2"><label className="label">ملاحظة</label><input name="note" className="input" /></div>
+          <div><label className="label">ملاحظة</label><input name="note" className="input" /></div>
         </div>
         <div className="flex justify-end"><button className="btn-primary">حفظ الدفعة</button></div>
       </form>

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { dashboard, filterOptions, type DashboardFilters } from "@/lib/queries/dashboard";
-import { money, fmtDate, CATEGORY_LABEL } from "@/lib/format";
+import { money, fmtDate, CATEGORY_LABEL, SOURCE_LABEL } from "@/lib/format";
 import { FilterBar } from "./filter-bar";
 
 type Search = Record<string, string | string[] | undefined>;
@@ -37,6 +37,9 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         <Stat label="أعلى جهة" value={topParty?.name ?? "—"} sub={topParty ? money(topParty.total) : ""} />
         <Stat label="أعلى نوع عمل" value={topWork?.name ?? "—"} sub={topWork ? money(topWork.total) : ""} />
         <Stat label="أعلى بند أعمال" value={topItem?.description ?? "—"} sub={topItem ? money(topItem.value) : "بعد ربط المستخلصات"} />
+        {data.bySource.length > 1 && data.bySource.map((c) => (
+          <Stat key={c.source} label={`مصروف من ${SOURCE_LABEL[c.source] ?? c.source}`} value={money(c.total)} sub={`${c.payments} دفعة`} />
+        ))}
         {data.byCategory.map((c) => (
           <Stat key={c.category} label={`مصروف ${CATEGORY_LABEL[c.category] ?? c.category}`} value={money(c.total)} sub={`${c.payments} دفعة`} />
         ))}

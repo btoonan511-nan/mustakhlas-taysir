@@ -76,7 +76,7 @@ export async function addPaymentAction(fd: FormData) {
   const [{ max }] = await db.select({ max: schema.payments.seq }).from(schema.payments).where(eq(schema.payments.accountId, accountId)).orderBy(schema.payments.seq).limit(1000).then((rows) => [{ max: rows.reduce((m, r) => Math.max(m, r.max ?? 0), 0) }]);
   await db.insert(schema.payments).values({
     accountId, seq: max + 1, date: s(fd, "date") || null, amount, method: s(fd, "method"), voucher: s(fd, "voucher"),
-    label: s(fd, "label") || `دفعة ${max + 1} من الحساب`, note: s(fd, "note"),
+    label: s(fd, "label") || `دفعة ${max + 1} من الحساب`, note: s(fd, "note"), source: s(fd, "source") === "islam" ? "islam" : "cashbox",
   });
   revalidatePath(`/accounts/${accountId}`); revalidatePath("/accounts"); revalidatePath("/");
   if (s(fd, "redirect")) redirect(`/accounts/${accountId}`);
@@ -86,7 +86,7 @@ export async function updatePaymentAction(fd: FormData) {
   await requireUser();
   const paymentId = id(fd, "paymentId")!;
   const accountId = id(fd, "accountId")!;
-  await db.update(schema.payments).set({ date: s(fd, "date") || null, amount: n(fd, "amount"), method: s(fd, "method"), voucher: s(fd, "voucher"), label: s(fd, "label"), note: s(fd, "note") })
+  await db.update(schema.payments).set({ date: s(fd, "date") || null, amount: n(fd, "amount"), method: s(fd, "method"), voucher: s(fd, "voucher"), label: s(fd, "label"), note: s(fd, "note"), source: s(fd, "source") === "islam" ? "islam" : "cashbox" })
     .where(eq(schema.payments.id, paymentId));
   revalidatePath(`/accounts/${accountId}`); revalidatePath("/");
 }

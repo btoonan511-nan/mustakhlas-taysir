@@ -12,6 +12,8 @@ export const certificateStatus = pgEnum("certificate_status", ["draft", "approve
 export const certificateSource = pgEnum("certificate_source", ["system", "legacy"]);
 export const legacyStatus = pgEnum("legacy_status", ["pending", "linked", "ignored"]);
 export const userRole = pgEnum("user_role", ["admin", "user"]);
+/** Who actually paid: the company cashbox, or Eng. Islam directly. */
+export const paymentSource = pgEnum("payment_source", ["cashbox", "islam"]);
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -89,6 +91,7 @@ export const payments = pgTable("payments", {
   label: text("label").notNull().default(""),
   note: text("note").notNull().default(""),
   isOpening: boolean("is_opening").notNull().default(false),
+  source: paymentSource("source").notNull().default("cashbox"),
   sourceFile: text("source_file").notNull().default(""),
   sourceSheet: text("source_sheet").notNull().default(""),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

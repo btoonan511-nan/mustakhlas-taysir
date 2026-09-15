@@ -51,6 +51,10 @@ export async function dashboard(f: DashboardFilters) {
     .from(payments).innerJoin(accounts, eq(payments.accountId, accounts.id)).innerJoin(parties, eq(accounts.partyId, parties.id)).innerJoin(projects, eq(accounts.projectId, projects.id)).leftJoin(workTypes, eq(accounts.workTypeId, workTypes.id))
     .where(where).groupBy(workTypes.id, workTypes.name).orderBy(desc(total)).limit(15);
 
+  const bySourceQ = db.select({ source: payments.source, total, payments: count })
+    .from(payments).innerJoin(accounts, eq(payments.accountId, accounts.id)).innerJoin(parties, eq(accounts.partyId, parties.id)).innerJoin(projects, eq(accounts.projectId, projects.id))
+    .where(where).groupBy(payments.source).orderBy(desc(total));
+
   const byCategoryQ = db.select({ category: parties.category, total, payments: count })
     .from(payments).innerJoin(accounts, eq(payments.accountId, accounts.id)).innerJoin(parties, eq(accounts.partyId, parties.id)).innerJoin(projects, eq(accounts.projectId, projects.id))
     .where(where).groupBy(parties.category).orderBy(desc(total));
@@ -79,8 +83,8 @@ export async function dashboard(f: DashboardFilters) {
   const topPaymentsQ = base().where(where).orderBy(desc(payments.amount)).limit(10);
 
   // Neon HTTP handles concurrent requests; running the nine aggregations in parallel cuts the page from ~1.5s to ~0.5s
-  const [[summary], byProject, byParty, byWorkType, byCategory, byMonth, byYear, topItems, topPayments] = await Promise.all([summaryQ, byProjectQ, byPartyQ, byWorkTypeQ, byCategoryQ, byMonthQ, byYearQ, topItemsQ, topPaymentsQ]);
-  return { summary, byProject, byParty, byWorkType, byCategory, byMonth, byYear, topItems, topPayments };
+  const [[summary], byProject, byParty, byWorkType, byCategory, byMonth, byYear, topItems, topPayments, bySource] = await Promise.all([summaryQ, byProjectQ, byPartyQ, byWorkTypeQ, byCategoryQ, byMonthQ, byYearQ, topItemsQ, topPaymentsQ, bySourceQ]);
+  return { summary, byProject, byParty, byWorkType, byCategory, byMonth, byYear, topItems, topPayments, bySource };
 }
 
 export async function filterOptions() {
