@@ -54,7 +54,7 @@ export default async function CertificatePage({ params, searchParams }: { params
       {/* Printable sheet — mirrors Islam's Word layout */}
       <div className="print-page card p-8 max-w-4xl mx-auto bg-white text-[13px] leading-relaxed">
         <div className="flex justify-between items-start">
-          <div className="text-lg font-bold">شركة تيسر</div>
+          <div className="text-lg font-bold">مستخلص إسلام</div>
           <div className="text-center"><div className="text-xl font-bold">مشروع {acc.project.name}</div></div>
           <div className="text-xs text-stone-500 num">رقم {cert.number}</div>
         </div>

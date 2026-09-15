@@ -9,8 +9,8 @@ const font = IBM_Plex_Sans_Arabic({
 });
 
 export const metadata: Metadata = {
-  title: "مستخلصات تيسر",
-  description: "نظام مستخلصات المقاولين ولوحة تحليل المشاريع — شركة تيسر",
+  title: "مستخلص إسلام",
+  description: "نظام مستخلصات المقاولين ولوحة تحليل المشاريع",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -19,7 +19,7 @@ export function Nav({ user }: { user: SessionUser }) {
   return (
     <header className="no-print bg-white border-b border-stone-200 sticky top-0 z-20">
       <div className="max-w-7xl mx-auto px-4 h-14 flex items-center gap-4">
-        <Link href="/" className="font-bold text-emerald-800 whitespace-nowrap">تيسر · المستخلصات</Link>
+        <Link href="/" className="font-bold text-emerald-800 whitespace-nowrap">مستخلص إسلام</Link>
         <nav className="flex items-center gap-1 overflow-x-auto flex-1">
           {links.filter((l) => !l.admin || user.role === "admin").map((l) => {
             const active = l.exact ? path === l.href : path.startsWith(l.href) && !(l.href === "/certificates" && path.startsWith("/certificates/new"));

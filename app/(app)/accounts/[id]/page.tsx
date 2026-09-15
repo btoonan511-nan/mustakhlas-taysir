@@ -10,9 +10,8 @@ import { Details } from "@/app/(app)/details";
 export default async function AccountPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const user = await requireUser();
-  const acc = await getAccount(Number(id));
+  const [acc, opts] = await Promise.all([getAccount(Number(id)), lookups()]);
   if (!acc) notFound();
-  const opts = await lookups();
   const paid = acc.payments.reduce((s, p) => s + p.amount, 0);
   const works = acc.items.filter((i) => i.active).reduce((s, i) => s + i.cumQty * i.price, 0);
   const activeItems = acc.items.filter((i) => i.active);

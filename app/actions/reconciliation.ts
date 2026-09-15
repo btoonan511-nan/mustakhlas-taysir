@@ -17,8 +17,10 @@ function revalidateAll(accountId?: number) {
 export async function linkLegacyAction(fd: FormData) {
   await requireAdmin();
   const legacyId = id(fd, "legacyId")!;
-  const accountId = id(fd, "accountId");
-  if (!accountId) throw new Error("اختر الحساب");
+  // either a hidden accountId (candidate button) or a datalist pick like "#42 · روبل — ..."
+  const picked = Number((s(fd, "accountPick").match(/^#(\d+)/) ?? [])[1]);
+  const accountId = id(fd, "accountId") ?? (picked > 0 ? picked : null);
+  if (!accountId) throw new Error("اختر الحساب من القائمة");
   await linkLegacyToAccount(legacyId, accountId);
   revalidateAll(accountId);
 }

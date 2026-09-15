@@ -34,6 +34,7 @@ export default async function ReconciliationPage({ searchParams }: { searchParam
 
       {tab === "legacy" && (
         <div className="space-y-3">
+          <datalist id="all-accounts">{accountOptions.map((a) => <option key={a.id} value={`#${a.id} · ${a.party} — ${a.title} (${a.project})`} />)}</datalist>
           {pending.length === 0 && <p className="card p-6 text-center text-stone-500">🎉 كل مستخلصات إسلام مربوطة.</p>}
           {pending.map((c) => {
             const items = legacyItems(c);
@@ -86,7 +87,7 @@ export default async function ReconciliationPage({ searchParams }: { searchParam
                     <form action={linkLegacyAction} className="flex gap-2 items-end">
                       <input type="hidden" name="legacyId" value={c.id} />
                       <div className="flex-1"><label className="label">أو اختر أي حساب</label>
-                        <select name="accountId" className="input" defaultValue=""><option value="">—</option>{accountOptions.map((a) => <option key={a.id} value={a.id}>{a.project} › {a.party} — {a.title}</option>)}</select></div>
+                        <input name="accountPick" list="all-accounts" className="input" placeholder="اكتب اسم المقاول أو الحساب…" /></div>
                       <button className="btn-secondary">ربط</button>
                     </form>
                     <form action={createAccountFromLegacyAction} className="flex gap-2 items-end">
